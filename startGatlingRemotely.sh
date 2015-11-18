@@ -21,6 +21,12 @@ if [ $3 ]; then
 fi
 
 
+runDuration="val testDuration = "
+if [ $4 ]; then
+ duration=$4
+ find gatling/user-files/ -name *.scala -exec sed -i "s/$runDuration[0-9]* [a-z]*/$runDuration$duration minutes/g" {} \;
+fi
+
 defaultHeapSize="6G"
 if [ $2 ]; then
  heapSize=$2

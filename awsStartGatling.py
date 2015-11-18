@@ -10,10 +10,10 @@ resultsFolderName="results/awsGatling" + str(time.time()).replace('.','')
 agentGatlingHome= "/home/" + awsUser + "/gatling/"
 controllerGatlingHome="/home/" + awsUser + "/gatling/" 
 totalUsers = int(sys.argv[1])
-print str(totalUsers)
+runDuration=int(sys.argv[2])
 
-typeToMem = {'t2.micro': '750m', '2x.xlarge': '3g'}
-typeToCores = {'t2.micro': 1, '2x.xlarge': 4}
+typeToMem = {'t2.micro': '750m','t2.medium': '3g', 't2.large': '7g'}
+typeToCores = {'t2.micro': 1, 't2.medium': 4, 't2.large': 4}
 
 print "#####################################"
 print ""
@@ -118,7 +118,9 @@ for running_instance in running_instances:
     print "#####" + ip_address + "#####"
     instanceUsers = int(round(totalUsers * (float(typeToCores[running_instance.instance_type]) / float(totalCoresRunning)),0))
 
-    commandToRun = "sh /home/" + awsUser + "/startGatlingRemotely.sh " + resultsFolderName + " " + typeToMem[running_instance.instance_type] + " " + str(instanceUsers)
+    commandToRun = "sh /home/" + awsUser + "/startGatlingRemotely.sh " + resultsFolderName + " " + \
+                  typeToMem[running_instance.instance_type] + " " + \
+                  str(instanceUsers) + " " + str(runDuration)
     sshCommand = "ssh -nq -o StrictHostKeyChecking=no" + \
                   " -i " + pemLocation + " " + \
                   awsUser + "@" + ip_address + " " + \
@@ -127,7 +129,7 @@ for running_instance in running_instances:
     print ""
 
 print "#########################"
-print "jmeter-server instances STARTED"
+print "Instances STARTED"
 print "#####################################"
 
 print ""
@@ -150,14 +152,14 @@ for running_instance in running_instances:
     print ""
 
 print "#########################"
-print "jmeter-server instances RUNNING"
+print  "Instances RUNNING"
 print "#####################################"
 
 
 print ""
 print "#####################################"
 print "Script is running on " + str(len(ip_addresses)) + " instances"
-print "Running in folder: " + resultsFolderName
+print "Running in folder: " + resultsFolderName + " (and have created results folder here)"
+subprocess.call("mkdir -p " + controllerGatlingHome + resultsFolderName, shell=True)
 print "Run `python awsGatlingFetchResults.py " + resultsFolderName + "` to process the results."
-print "or `watch python awsGatlingFetchResults.py " + resultsFolderName + " -n60` to fetch and process every 60s."
 print "#####################################"
