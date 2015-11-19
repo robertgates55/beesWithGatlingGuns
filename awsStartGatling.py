@@ -2,6 +2,7 @@ import boto3
 import subprocess
 import time
 import sys
+from webSecSoap import addIpAddressesToSite
 
 awsUser = "ec2-user"
 pemLocation = "/home/" + awsUser + "/perimeterAwsKey.pem"
@@ -9,8 +10,17 @@ instanceTag="micro"
 resultsFolderName="results/awsGatling" + str(time.time()).replace('.','')
 agentGatlingHome= "/home/" + awsUser + "/gatling/"
 controllerGatlingHome="/home/" + awsUser + "/gatling/" 
-totalUsers = int(sys.argv[1])
-runDuration=int(sys.argv[2])
+
+totalUsers=1000 #default
+runDuration=60 #default
+maxInstances=20 #default
+args = sys.argv[1:]
+if len(args) > 0 :
+ totalUsers = int(args[0])
+if len(args) > 1 :
+ runDuration=int(args[1])
+if len(args) > 2 :
+ maxInstances=int(args[2])
 
 typeToMem = {'t2.micro': '750m','t2.medium': '3g', 't2.large': '7g'}
 typeToCores = {'t2.micro': 1, 't2.medium': 4, 't2.large': 4}
@@ -28,18 +38,30 @@ print "#####################################"
 
 ec2 = boto3.resource('ec2')
 
-test_instances = ec2.instances.filter(
+all_test_instances = ec2.instances.filter(
     Filters=[{'Name': 'tag:type', 'Values': [instanceTag]}])
+
+test_instances=[]
+instances_to_stop=[]
+for inst in all_test_instances :
+  if len(test_instances) < maxInstances :
+    test_instances.append(inst)
+  else:
+    instances_to_stop.append(inst)
 
 print ""
 print "#####################################"
-print "Bringing up the AWS instances with 'type' tag of `" + instanceTag + "`"
+print "Bringing up " + str(maxInstances) + " AWS instances with 'type' tag of `" + instanceTag + "` (and stopping the rest)"
 print "#########################"
 
 for test_instance in test_instances:
     if test_instance.state['Name'] != "running":
         print "Starting " + test_instance.instance_id + "..."
         test_instance.start()
+
+for test_instance in instances_to_stop:
+    print "Stopping " + test_instance.instance_id + "..."
+    test_instance.stop()
 
 for test_instance in test_instances:
     print "Waiting for " + test_instance.instance_id + "..."
@@ -57,11 +79,18 @@ for running_instance in running_instances:
 print "#########################"
 print "AWS Instances UP - " + str(len(ip_addresses)) + " instances, " + str(totalCoresRunning) + " total cores"
 print "#####################################"
-print ""
-
 
 print ""
 
+print "#####################################"
+print "Adding IP Addresses to web Sec via API"
+print "#########################"
+addIpAddressesToSite(47,"AWS Test Array",ip_addresses)
+print "#########################"
+print ""
+print "#####################################"
+
+print ""
 
 print "#####################################"
 print "Moving the test files to " + str(len(ip_addresses))+ " instances"
@@ -71,13 +100,13 @@ for running_instance in running_instances:
     print "#####" + ip_address + "#####"
 
     createCommand = "mkdir " + agentGatlingHome
-    sshCommand = "ssh -nq -o StrictHostKeyChecking=no" + \
+    sshCommand = "ssh -nq -o StrictHostKeyChecking=no -o ConnectTimeout=10 -o ConnectionAttempts=3" + \
                   " -i " + pemLocation + " " + \
                   awsUser + "@" + ip_address + " " + \
                   createCommand
     subprocess.call(sshCommand, shell=True)
 
-    rsyncCommand="rsync -rave 'ssh -o StrictHostKeyChecking=no" + \
+    rsyncCommand="rsync -rave 'ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -o ConnectionAttempts=3" + \
                   " -i " + pemLocation + "' " + \
                   "--exclude={,'/target','*.txt','*.git','/results','/bin','/lib'} " + \
                   controllerGatlingHome + "/* " + \
@@ -86,7 +115,7 @@ for running_instance in running_instances:
     print rsyncCommand
     subprocess.call(rsyncCommand, shell=True)   
 
-    rsyncCommand="rsync -rave 'ssh -o StrictHostKeyChecking=no" + \
+    rsyncCommand="rsync -rave 'ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -o ConnectionAttempts=3" + \
                   " -i " + pemLocation + "' " + \
                    "./startGatlingRemotely.sh " + \
                   awsUser + "@" + ip_address + ":" + \
@@ -94,7 +123,7 @@ for running_instance in running_instances:
     print rsyncCommand
     subprocess.call(rsyncCommand, shell=True) 
 
-    rsyncCommand="rsync -rave 'ssh -o StrictHostKeyChecking=no" + \
+    rsyncCommand="rsync -rave 'ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -o ConnectionAttempts=3" + \
                   " -i " + pemLocation + "' " + \
                    "./checkGatlingStatus.sh " + \
                   awsUser + "@" + ip_address + ":" + \
@@ -121,7 +150,7 @@ for running_instance in running_instances:
     commandToRun = "sh /home/" + awsUser + "/startGatlingRemotely.sh " + resultsFolderName + " " + \
                   typeToMem[running_instance.instance_type] + " " + \
                   str(instanceUsers) + " " + str(runDuration)
-    sshCommand = "ssh -nq -o StrictHostKeyChecking=no" + \
+    sshCommand = "ssh -nq -o StrictHostKeyChecking=no -o ConnectTimeout=10 -o ConnectionAttempts=3" + \
                   " -i " + pemLocation + " " + \
                   awsUser + "@" + ip_address + " " + \
                   commandToRun
@@ -144,7 +173,7 @@ for running_instance in running_instances:
     print "#####" + ip_address + "#####"
 
     commandToRun = "sh /home/" + awsUser + "/checkGatlingStatus.sh"
-    sshCommand = "ssh -nq -o StrictHostKeyChecking=no" + \
+    sshCommand = "ssh -nq -o StrictHostKeyChecking=no -o ConnectTimeout=10 -o ConnectionAttempts=3" + \
                   " -i " + pemLocation + " " + \
                   awsUser + "@" + ip_address + " " + \
                   commandToRun

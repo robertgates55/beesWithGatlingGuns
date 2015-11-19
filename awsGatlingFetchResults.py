@@ -65,7 +65,7 @@ print "#####################################"
 print "Processing Results"
 print "#########################"
 subprocess.call(controllerGatlingHome + "/bin/gatling.sh -ro " + resultsFolderName.replace('results/',''), shell=True)
-subprocess.call("sudo service nginx restart",shell=True)
+#subprocess.call("sudo service nginx restart",shell=True)
 print "#########################"
 print "Results Processed"
 print "#####################################"
