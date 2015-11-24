@@ -5,11 +5,15 @@ import time
 
 awsUser = "ec2-user"
 pemLocation = "/home/ec2-user//perimeterAwsKey.pem"
-instanceTag="micro"
-resultsFolderName="results/awsGatling" + str(time.time()).replace('.','')
+instanceTag="agent"
 agentGatlingHome= "/home/" + awsUser + "/gatling/"
 controllerGatlingHome="/home/" + awsUser + "/gatling/"
-heapSize="750m"
+
+def runShellCommand(cmd):
+  proc = subprocess.Popen(cmd,shell=True,bufsize=256, stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+  for line in proc.stdout:
+    print(">>> " + str(line.rstrip()))
+  return
 
 print "#####################################"
 print ""
@@ -67,7 +71,7 @@ for ip_address in ip_addresses:
                   awsUser + "@" + ip_address + ":" + \
                   "/home/" + awsUser
     print rsyncCommand
-    subprocess.call(rsyncCommand, shell=True) 
+    runShellCommand(rsyncCommand) 
 
 
     commandToRun = "sh /home/" + awsUser + "/stopGatlingRemotely.sh " + resultsFolderName + " " + heapSize
@@ -75,7 +79,7 @@ for ip_address in ip_addresses:
                   " -i " + pemLocation + " " + \
                   awsUser + "@" + ip_address + " " + \
                   commandToRun
-    subprocess.call(sshCommand, shell=True)              
+    runShellCommand(sshCommand)              
     print ""
 
 print "#########################"

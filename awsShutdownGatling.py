@@ -2,7 +2,7 @@ import boto3
 import subprocess
 
 
-testTag="micro"
+testTag="agent"
 
 
 ec2 = boto3.resource('ec2')

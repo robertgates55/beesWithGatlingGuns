@@ -3,6 +3,8 @@
 echo "Kill any previously running gatling instances"
 kill -9 `ps -aef | grep 'gatling' | grep -v grep | awk '{print $2}'`
 
+rm -rf "/home/ec2-user/gatling/user-files/simulations/ai/ReadThenSpider.scala"
+
 if [ ! -d "gatling/bin" ]; then
     echo "gatling not found (or not found where it was expected to be), so going to download/install and move bin, lib and conf to the gatling folder"
     wget https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle/2.1.7/gatling-charts-highcharts-bundle-2.1.7-bundle.zip

@@ -5,12 +5,20 @@ import sys
 
 awsUser = "ec2-user"
 pemLocation = "~/perimeterAwsKey.pem"
-instanceTag="micro"
+instanceTag="agent"
 agentGatlingHome= "/home/" + awsUser + "/gatling/"
 controllerGatlingHome="/home/" + awsUser + "/gatling/"
 resultsFolderName=sys.argv[1]
 
 print resultsFolderName
+
+def runShellCommand(cmd):
+  proc = subprocess.Popen(cmd,shell=True,bufsize=256, stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+  for line in proc.stdout:
+    print(">>> " + str(line.rstrip()))
+  print ""
+  return
+
 
 print "#####################################"
 print "Getting agent IP Addresses"
@@ -34,7 +42,7 @@ print ""
 print "#####################################"
 print "Fetching results from " + str(len(ip_addresses))+ " agents"
 print "#########################"
-subprocess.call("mkdir -p " + controllerGatlingHome + resultsFolderName, shell=True)
+runShellCommand("mkdir -p " + controllerGatlingHome + resultsFolderName)
 for ip_address in ip_addresses:
     print "#####" + ip_address + "#####"
 
@@ -44,8 +52,7 @@ for ip_address in ip_addresses:
                   " -i " + pemLocation + " " + \
                   awsUser + "@" + ip_address + " " + \
                   localCopyCommand
-    print sshCommand
-    subprocess.call(sshCommand, shell=True)   
+    runShellCommand(sshCommand)   
 
     fetchCommand = agentGatlingHome + resultsFolderName + "/simulation.log" + " " + \
                      controllerGatlingHome + resultsFolderName + "/" + str(ip_address).replace('.','') + "simulation.log"
@@ -53,7 +60,7 @@ for ip_address in ip_addresses:
                   " -i " + pemLocation + " " + \
                   awsUser + "@" + ip_address + ":" + \
                   fetchCommand
-    subprocess.call(scpCommand, shell=True)
+    runShellCommand(scpCommand)
 
 print "#########################"
 print "Test files MOVED"
@@ -64,8 +71,8 @@ print ""
 print "#####################################"
 print "Processing Results"
 print "#########################"
-subprocess.call(controllerGatlingHome + "/bin/gatling.sh -ro " + resultsFolderName.replace('results/',''), shell=True)
-#subprocess.call("sudo service nginx restart",shell=True)
+runShellCommand(controllerGatlingHome + "/bin/gatling.sh -ro " + resultsFolderName.replace('results/',''))
+#runShellCommand("sudo service nginx restart")
 print "#########################"
 print "Results Processed"
 print "#####################################"
